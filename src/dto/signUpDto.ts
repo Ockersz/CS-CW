@@ -3,4 +3,5 @@ export class SignUpDto {
   password: string;
   email: string;
   mfa: boolean;
+  refreshToken: string | null;
 }

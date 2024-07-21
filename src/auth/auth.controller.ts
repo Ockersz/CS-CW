@@ -17,4 +17,10 @@ export class AuthController {
   signUp(@Body() signUpDto: SignUpDto) {
     return this.authService.signUp(signUpDto);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh')
+  refresh(@Body() refreshDto: Record<string, any>) {
+    return this.authService.refreshToken(refreshDto.refreshToken);
+  }
 }

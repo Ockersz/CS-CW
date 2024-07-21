@@ -43,6 +43,12 @@ export class User {
   })
   status: string;
 
+  @Column('varchar', {
+    length: 255,
+    nullable: true,
+  })
+  refreshToken: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 
