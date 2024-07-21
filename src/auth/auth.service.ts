@@ -98,4 +98,15 @@ export class AuthService {
       refresh_token: newRefreshToken,
     };
   }
+
+  async logOut(username: string) {
+    const user = await this.usersService.findOne(username);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    await this.usersService.update(user.id, {
+      refreshToken: null,
+    });
+  }
 }
