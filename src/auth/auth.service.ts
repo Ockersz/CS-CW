@@ -64,6 +64,9 @@ export class AuthService {
       { sub: createdUser.id, username: createdUser.username },
       { expiresIn: '1d' },
     );
+    await this.usersService.update(createdUser.id, {
+      refreshToken,
+    });
     return createdUser.mfa
       ? { mfa: true }
       : {
