@@ -15,7 +15,7 @@ export class AuthService {
     pass: string,
   ): Promise<
     | { access_token: string; refresh_token: string; mfa: false }
-    | { mfa: boolean }
+    | { mfa: boolean; maskedTelephone: string; maskedEmail: string }
   > {
     const user = await this.usersService.findOne(username);
 
@@ -46,6 +46,14 @@ export class AuthService {
     }
     return {
       mfa: true,
+      maskedTelephone: user.telephone.replace(
+        user.telephone.slice(3, 6),
+        '***',
+      ),
+      maskedEmail: user.email.replace(
+        user.email.slice(3, user.email.indexOf('@')),
+        '***',
+      ),
     };
   }
 
@@ -111,5 +119,31 @@ export class AuthService {
     await this.usersService.update(user.id, {
       refreshToken: null,
     });
+  }
+
+  async mfa(mfaDto: Record<string, any>) {
+    const user = await this.usersService.findOne(mfaDto.username);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    if (user.mfa !== mfaDto.mfa) {
+      throw new UnauthorizedException();
+    }
+
+    switch (mfaDto.type) {
+      case 'SMS':
+        if (user.telephone !== mfaDto.telephone) {
+          throw new UnauthorizedException();
+        }
+        break;
+      case 'EMAIL':
+        if (user.email !== mfaDto.email) {
+          throw new UnauthorizedException();
+        }
+        break;
+      default:
+        throw new UnauthorizedException();
+    }
   }
 }

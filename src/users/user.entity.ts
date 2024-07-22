@@ -28,6 +28,12 @@ export class User {
   })
   email: string;
 
+  @Column('varchar', {
+    length: 13,
+    nullable: true,
+  })
+  telephone: string;
+
   @Column('bigint', {
     nullable: true,
   })

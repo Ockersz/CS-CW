@@ -23,4 +23,10 @@ export class AuthController {
   refresh(@Body() refreshDto: Record<string, any>) {
     return this.authService.refreshToken(refreshDto.refreshToken);
   }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('mfa')
+  mfa(@Body() mfaDto: Record<string, any>) {
+    return this.authService.mfa(mfaDto);
+  }
 }
