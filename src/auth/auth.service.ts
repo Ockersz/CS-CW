@@ -113,7 +113,7 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    if (user.mfa) {
+    if (!user.mfa) {
       throw new UnauthorizedException();
     }
 
@@ -155,8 +155,28 @@ export class AuthService {
     const isOtpValid = await bcrypt.compare(otp, user.otp);
 
     if (!isOtpValid) {
+      const mfaToken = await this.jwtService.signAsync(
+        { sub: user.id, username: user.username, mfa: true },
+        { expiresIn: '5m' },
+      );
+
+      await this.usersService.update(user.id, {
+        mfaToken,
+        refreshToken: null,
+      });
+
       throw new UnauthorizedException({
         message: 'Invalid OTP',
+        mfaToken,
+        maskedTelephone: user.telephone.replace(
+          user.telephone.slice(3, user.telephone.length - 3),
+          '***',
+        ),
+        maskedEmail: user.email.replace(
+          user.email.slice(3, user.email.indexOf('@')),
+          '****',
+        ),
+        invalid: true,
       });
     }
 
