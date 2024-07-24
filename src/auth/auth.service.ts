@@ -1,18 +1,38 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Res, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { generateKeyPairSync } from 'crypto';
+import { Response } from 'express';
 import { SignUpDto } from 'src/dto/signUpDto';
 import { MailService } from 'src/mail/mail.service';
 import { SmsService } from 'src/sms/sms.service';
 import { UsersService } from 'src/users/users.service';
 @Injectable()
 export class AuthService {
+  private privateKey: string;
+  private publicKey: string;
+
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private mailService: MailService,
     private smsService: SmsService,
-  ) {}
+  ) {
+    const { publicKey, privateKey } = generateKeyPairSync('rsa', {
+      modulusLength: 2048,
+      publicKeyEncoding: {
+        type: 'spki',
+        format: 'pem',
+      },
+      privateKeyEncoding: {
+        type: 'pkcs8',
+        format: 'pem',
+      },
+    });
+
+    this.publicKey = publicKey;
+    this.privateKey = privateKey;
+  }
 
   async signUp(
     signUpDto: SignUpDto,
@@ -41,26 +61,21 @@ export class AuthService {
         };
   }
 
+  async init(@Res() res: Response) {
+    return res.json({ publicKey: this.publicKey });
+  }
+
   //Needs Username and Password
-  async signIn(
-    username: string,
-    pass: string,
-  ): Promise<
-    | { access_token: string; refresh_token: string; mfa: false }
-    | {
-        mfa: boolean;
-        maskedTelephone: string;
-        maskedEmail: string;
-        mfaToken: string;
-      }
-  > {
+  async signIn(username: string, pass: string, @Res() res: Response) {
     const user = await this.usersService.findOne(username);
 
     if (!user) {
       throw new UnauthorizedException();
     }
 
-    if (user?.password !== pass) {
+    // const passwordMatches = await bcrypt.compare(pass, user.password);
+    const passwordMatches = pass === user.password;
+    if (!passwordMatches) {
       throw new UnauthorizedException();
     }
 
@@ -70,15 +85,28 @@ export class AuthService {
         { expiresIn: '1d' },
       );
 
-      await this.usersService.update(user.id, {
-        refreshToken,
-      });
+      await this.usersService.update(user.id, { refreshToken });
+
       const payload = { sub: user.id, username: user.username };
-      return {
-        access_token: await this.jwtService.signAsync(payload),
-        refresh_token: refreshToken,
-        mfa: false,
-      };
+      const accessToken = await this.jwtService.signAsync(payload);
+
+      // Set cookies
+      res.cookie('access_token', accessToken, {
+        httpOnly: true,
+        maxAge: 60000,
+        secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
+        sameSite: 'strict',
+        expires: new Date(Date.now() + 60000),
+      });
+      res.cookie('refresh_token', refreshToken, {
+        httpOnly: true,
+        maxAge: 86400000,
+        secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
+        sameSite: 'strict',
+        expires: new Date(Date.now() + 86400000),
+      });
+
+      return res.json({ mfa: false });
     }
 
     const mfaToken = await this.jwtService.signAsync(
@@ -91,7 +119,7 @@ export class AuthService {
       refreshToken: null,
     });
 
-    return {
+    return res.json({
       mfa: true,
       maskedTelephone: user.telephone.replace(
         user.telephone.slice(3, user.telephone.length - 3),
@@ -102,7 +130,7 @@ export class AuthService {
         '***',
       ),
       mfaToken,
-    };
+    });
   }
 
   //Need type : SMS or EMAIL with the telephone or email and the mfa auth token
