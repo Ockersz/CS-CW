@@ -55,6 +55,18 @@ export class User {
   })
   refreshToken: string | null;
 
+  @Column('varchar', {
+    length: 255,
+    nullable: true,
+  })
+  otp: string | null;
+
+  @Column('varchar', {
+    length: 255,
+    nullable: true,
+  })
+  mfaToken: string | null;
+
   @CreateDateColumn()
   created_at: Date;
 

@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { MailController } from './mail/mail.controller';
+import { MailModule } from './mail/mail.module';
+import { SmsModule } from './sms/sms.module';
 import { User } from './users/user.entity';
 import { UsersModule } from './users/users.module';
 
@@ -24,8 +27,10 @@ import { UsersModule } from './users/users.module';
     }),
     AuthModule,
     UsersModule,
+    MailModule,
+    SmsModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, MailController],
   providers: [AppService],
 })
 export class AppModule {}
