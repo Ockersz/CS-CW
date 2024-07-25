@@ -1,38 +1,21 @@
 import { Injectable, Res, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { generateKeyPairSync } from 'crypto';
 import { Response } from 'express';
 import { SignUpDto } from 'src/dto/signUpDto';
+import { EncrpytionService } from 'src/encrpytion/encrpytion.service';
 import { MailService } from 'src/mail/mail.service';
 import { SmsService } from 'src/sms/sms.service';
 import { UsersService } from 'src/users/users.service';
 @Injectable()
 export class AuthService {
-  private privateKey: string;
-  private publicKey: string;
-
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private mailService: MailService,
     private smsService: SmsService,
-  ) {
-    const { publicKey, privateKey } = generateKeyPairSync('rsa', {
-      modulusLength: 2048,
-      publicKeyEncoding: {
-        type: 'spki',
-        format: 'pem',
-      },
-      privateKeyEncoding: {
-        type: 'pkcs8',
-        format: 'pem',
-      },
-    });
-
-    this.publicKey = publicKey;
-    this.privateKey = privateKey;
-  }
+    private encryptionService: EncrpytionService,
+  ) {}
 
   async signUp(
     signUpDto: SignUpDto,
@@ -62,7 +45,8 @@ export class AuthService {
   }
 
   async init(@Res() res: Response) {
-    return res.json({ publicKey: this.publicKey });
+    const public_key = this.encryptionService.getPublicKey();
+    return res.json({ public_key });
   }
 
   //Needs Username and Password
@@ -72,9 +56,9 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
-
+    const decryptedPassword = this.encryptionService.decrypt(pass);
     // const passwordMatches = await bcrypt.compare(pass, user.password);
-    const passwordMatches = pass === user.password;
+    const passwordMatches = decryptedPassword === user.password;
     if (!passwordMatches) {
       throw new UnauthorizedException();
     }

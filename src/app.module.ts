@@ -9,6 +9,7 @@ import { MailModule } from './mail/mail.module';
 import { SmsModule } from './sms/sms.module';
 import { User } from './users/user.entity';
 import { UsersModule } from './users/users.module';
+import { EncrpytionModule } from './encrpytion/encrpytion.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { UsersModule } from './users/users.module';
     UsersModule,
     MailModule,
     SmsModule,
+    EncrpytionModule,
   ],
   controllers: [AppController, MailController],
   providers: [AppService],
