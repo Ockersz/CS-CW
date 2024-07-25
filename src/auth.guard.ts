@@ -33,10 +33,6 @@ export class AuthGuard implements CanActivate {
         throw new UnauthorizedException();
       }
 
-      if (user.mfaToken !== token) {
-        throw new UnauthorizedException();
-      }
-
       request['user'] = user;
     } catch (err) {
       throw new UnauthorizedException();

@@ -58,7 +58,10 @@ export class AuthService {
     }
     const decryptedPassword = this.encryptionService.decrypt(pass);
     // const passwordMatches = await bcrypt.compare(pass, user.password);
-    const passwordMatches = decryptedPassword === user.password;
+    const passwordMatches = bcrypt.compareSync(
+      decryptedPassword,
+      user.password,
+    );
     if (!passwordMatches) {
       throw new UnauthorizedException();
     }
@@ -98,22 +101,32 @@ export class AuthService {
       { expiresIn: '5m' },
     );
 
+    res.cookie('mfa_token', mfaToken, {
+      httpOnly: true,
+      maxAge: 300000,
+      secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
+      sameSite: 'strict',
+      expires: new Date(Date.now() + 300000),
+    });
+
     await this.usersService.update(user.id, {
-      mfaToken,
       refreshToken: null,
     });
 
     return res.json({
       mfa: true,
-      maskedTelephone: user.telephone.replace(
-        user.telephone.slice(3, user.telephone.length - 3),
-        '***',
-      ),
-      maskedEmail: user.email.replace(
-        user.email.slice(3, user.email.indexOf('@')),
-        '***',
-      ),
-      mfaToken,
+      maskedTelephone: user.telephone
+        ? user.telephone.replace(
+            user.telephone.slice(3, user.telephone.length - 3),
+            '***',
+          )
+        : null,
+      maskedEmail: user.email
+        ? user.email.replace(
+            user.email.slice(3, user.email.indexOf('@') - 2),
+            '***',
+          )
+        : null,
     });
   }
 
@@ -146,11 +159,13 @@ export class AuthService {
         if (user.email !== mfaDto.email) {
           throw new UnauthorizedException();
         }
-        this.mailService.sendMfaMail(user.email, otp, user.username);
+        await this.mailService.sendMfaMail(user.email, otp, user.username);
         break;
       default:
         throw new UnauthorizedException();
     }
+
+    return { message: 'OTP sent' };
   }
 
   //User object and the otp
