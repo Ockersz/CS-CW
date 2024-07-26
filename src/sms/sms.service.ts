@@ -9,7 +9,6 @@ export class SmsService {
     try {
       const url = `https://e-sms.dialog.lk/api/v1/message-via-url/create/url-campaign?esmsqk=${SMS_KEY}&list=${number.toString()}&message=${encodeURIComponent(message)}`;
       const res = await axios.get(url);
-      console.log(res.data);
       return res.data;
     } catch (err) {
       console.error(err);

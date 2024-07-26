@@ -17,24 +17,24 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    let token: string;
 
-    try {
-      token = this.extractToken(request);
+    const token = this.extractToken(request);
 
-      if (!token) {
-        throw new UnauthorizedException('Token not found');
-      }
+    if (!token) {
+      throw new UnauthorizedException({
+        message: 'Token not found',
+        tokenExp: true,
+        error: 'Unauthorized',
+        statusCode: 401,
+      });
+    }
 
-      if (request.path === '/auth/refresh') {
-        await this.handleRefreshToken(token);
-      } else {
-        const decoded = this.decodeToken(token);
-        this.checkTokenExpiry(decoded);
-        await this.validateUser(decoded, request);
-      }
-    } catch (err) {
-      throw new UnauthorizedException(err.message);
+    if (request.path === '/auth/refresh') {
+      await this.handleRefreshToken(token);
+    } else {
+      const decoded = this.decodeToken(token);
+      this.checkTokenExpiry(decoded);
+      await this.validateUser(decoded, request);
     }
 
     return true;
