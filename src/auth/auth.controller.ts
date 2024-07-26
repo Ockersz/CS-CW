@@ -55,7 +55,11 @@ export class AuthController {
   @UseGuards(AuthGuard)
   @HttpCode(HttpStatus.OK)
   @Post('verify')
-  verify(@Body() verifyDto: Record<string, any>, @Req() req: any) {
-    return this.authService.verifyOtp(req?.user, verifyDto.otp);
+  verify(
+    @Body() verifyDto: Record<string, any>,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    return this.authService.verifyOtp(req?.user, verifyDto.otp, res);
   }
 }

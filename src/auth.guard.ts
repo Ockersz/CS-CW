@@ -4,45 +4,95 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Request } from 'express';
 import * as jwt from 'jsonwebtoken';
+import { AuthService } from './auth/auth.service';
 import { UsersService } from './users/users.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly userService: UsersService) {}
+  constructor(
+    private readonly userService: UsersService,
+    private readonly authService: AuthService,
+  ) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    let token: string;
+
     try {
-      const request = context.switchToHttp().getRequest();
-      const token = this.extractTokenFromHeader(request);
+      token = this.extractToken(request);
+
       if (!token) {
-        throw new UnauthorizedException();
-      }
-      const decoded = jwt.decode(token);
-
-      const userAuth = decoded;
-      const userId = userAuth ? userAuth['sub'] : null;
-      const username = userAuth ? userAuth['username'] : null;
-      if (!userId) {
-        throw new UnauthorizedException();
+        throw new UnauthorizedException('Token not found');
       }
 
-      const user = await this.userService.findOne(username);
-
-      if (!user) {
-        throw new UnauthorizedException();
+      if (request.path === '/auth/refresh') {
+        await this.handleRefreshToken(token);
+      } else {
+        const decoded = this.decodeToken(token);
+        this.checkTokenExpiry(decoded);
+        await this.validateUser(decoded, request);
       }
-
-      request['user'] = user;
     } catch (err) {
-      throw new UnauthorizedException();
+      throw new UnauthorizedException(err.message);
     }
 
     return true;
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = request.headers.authorization?.split(' ') ?? [];
-    return type === 'Bearer' ? token : undefined;
+  private extractToken(request: any): string {
+    const reqPath = request.path || '';
+    let token = request.cookies['access_token'];
+
+    if (reqPath === '/auth/mfa' || reqPath === '/auth/verify') {
+      token = request.cookies['mfa_token'];
+    } else if (reqPath === '/auth/refresh') {
+      token = request.cookies['refresh_token'];
+      if (!token) {
+        throw new UnauthorizedException('Refresh token not found');
+      }
+    }
+
+    return token;
+  }
+
+  private decodeToken(token: string): any {
+    try {
+      return jwt.decode(token);
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  private checkTokenExpiry(decoded: any): void {
+    if (decoded['exp'] * 1000 < Date.now()) {
+      throw new UnauthorizedException({
+        message: 'Token expired',
+        tokenExp: true,
+      });
+    }
+  }
+
+  private async handleRefreshToken(token: string): Promise<void> {
+    const decoded = this.decodeToken(token);
+    this.checkTokenExpiry(decoded);
+
+    await this.authService.refreshToken(token);
+  }
+
+  private async validateUser(decoded: any, request: any): Promise<void> {
+    const userId = decoded['sub'];
+    const username = decoded['username'];
+
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
+
+    const user = await this.userService.findOne(username);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    request['user'] = user;
   }
 }

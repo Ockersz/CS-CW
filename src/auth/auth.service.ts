@@ -169,7 +169,7 @@ export class AuthService {
   }
 
   //User object and the otp
-  async verifyOtp(userObj: any, otp: string) {
+  async verifyOtp(userObj: any, otp: string, @Res() res: Response) {
     const user = await this.usersService.findOne(userObj.username);
     if (!user) {
       throw new UnauthorizedException();
@@ -188,13 +188,19 @@ export class AuthService {
       );
 
       await this.usersService.update(user.id, {
-        mfaToken,
         refreshToken: null,
+      });
+
+      res.cookie('mfa_token', mfaToken, {
+        httpOnly: true,
+        maxAge: 300000,
+        secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
+        sameSite: 'strict',
+        expires: new Date(Date.now() + 300000),
       });
 
       throw new UnauthorizedException({
         message: 'Invalid OTP',
-        mfaToken,
         maskedTelephone: user.telephone.replace(
           user.telephone.slice(3, user.telephone.length - 3),
           '***',
@@ -214,16 +220,29 @@ export class AuthService {
 
     await this.usersService.update(user.id, {
       otp: null,
-      mfaToken: null,
       refreshToken,
     });
 
     const payload = { sub: user.id, username: user.username };
 
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-      refresh_token: refreshToken,
-    };
+    // Set cookies
+    res.cookie('access_token', await this.jwtService.signAsync(payload), {
+      httpOnly: true,
+      maxAge: 60000,
+      secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
+      sameSite: 'strict',
+      expires: new Date(Date.now() + 60000),
+    });
+
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      maxAge: 86400000,
+      secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
+      sameSite: 'strict',
+      expires: new Date(Date.now() + 86400000),
+    });
+
+    return res.json({ mfa: false });
   }
 
   async refreshToken(refreshToken: string) {
