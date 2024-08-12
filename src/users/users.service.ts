@@ -68,4 +68,15 @@ export class UsersService {
 
     return this.usersRepository.findOne({ where: { id } });
   }
+
+  async getUsers(userObj: any) {
+    console.log(userObj);
+    if (userObj.role !== '1') {
+      throw new BadRequestException('Unauthorized');
+    }
+
+    return this.usersRepository.find({
+      select: ['id', 'username', 'email', 'telephone', 'status', 'role'],
+    });
+  }
 }

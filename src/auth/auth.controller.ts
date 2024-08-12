@@ -41,8 +41,8 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('refresh')
-  refresh(@Body() refreshDto: Record<string, any>) {
-    return this.authService.refreshToken(refreshDto.refreshToken);
+  refresh(@Body() refreshDto: Record<string, any>, @Res() res: Response) {
+    return this.authService.refreshToken(refreshDto.refreshToken, res);
   }
 
   @UseGuards(AuthGuard)
@@ -61,5 +61,19 @@ export class AuthController {
     @Res() res: Response,
   ) {
     return this.authService.verifyOtp(req?.user, verifyDto.otp, res);
+  }
+
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Get('check')
+  check(@Req() req: any) {
+    return this.authService.check(req?.user);
+  }
+
+  @UseGuards(AuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @Post('protected')
+  protected(@Req() req: any, @Body() body: any) {
+    return this.authService.protected(req?.user, body.path);
   }
 }

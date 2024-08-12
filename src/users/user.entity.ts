@@ -47,7 +47,7 @@ export class User {
   @Column('boolean', {
     default: true,
   })
-  status: string;
+  status: boolean;
 
   @Column('varchar', {
     length: 255,

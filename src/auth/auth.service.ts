@@ -79,17 +79,17 @@ export class AuthService {
 
       // Set cookies
       res.cookie('access_token', accessToken, {
-        httpOnly: true,
+        // httpOnly: true,
         maxAge: 60000,
-        secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
-        sameSite: 'strict',
+        // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+        // sameSite: 'lax',
         expires: new Date(Date.now() + 60000),
       });
       res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
+        // httpOnly: true,
         maxAge: 86400000,
-        secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
-        sameSite: 'strict',
+        // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+        // sameSite: 'lax',
         expires: new Date(Date.now() + 86400000),
       });
 
@@ -102,10 +102,10 @@ export class AuthService {
     );
 
     res.cookie('mfa_token', mfaToken, {
-      httpOnly: true,
+      // httpOnly: true,
       maxAge: 300000,
-      secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
-      sameSite: 'strict',
+      // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+      // sameSite: 'lax',
       expires: new Date(Date.now() + 300000),
     });
 
@@ -192,10 +192,10 @@ export class AuthService {
       });
 
       res.cookie('mfa_token', mfaToken, {
-        httpOnly: true,
+        // httpOnly: true,
         maxAge: 300000,
-        secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
-        sameSite: 'strict',
+        // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+        // sameSite: 'lax',
         expires: new Date(Date.now() + 300000),
       });
 
@@ -227,25 +227,25 @@ export class AuthService {
 
     // Set cookies
     res.cookie('access_token', await this.jwtService.signAsync(payload), {
-      httpOnly: true,
+      // httpOnly: true,
       maxAge: 60000,
-      secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
-      sameSite: 'strict',
+      // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+      // sameSite: 'lax',
       expires: new Date(Date.now() + 60000),
     });
 
     res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
+      // httpOnly: true,
       maxAge: 86400000,
-      secure: process.env.NODE_ENV === 'production' ? true : true, // use secure cookies in production
-      sameSite: 'strict',
+      // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+      // sameSite: 'lax',
       expires: new Date(Date.now() + 86400000),
     });
 
     return res.json({ mfa: false });
   }
 
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string, @Res() res: Response) {
     const payload = await this.jwtService.verifyAsync(refreshToken);
     const user = await this.usersService.findOne(payload.username);
     if (!user) {
@@ -258,17 +258,36 @@ export class AuthService {
 
     const newRefreshToken = await this.jwtService.signAsync(
       { sub: user.id, username: user.username },
-      { expiresIn: '1d' },
+      { expiresIn: '10m' },
     );
 
     await this.usersService.update(user.id, {
       refreshToken: newRefreshToken,
     });
 
-    return {
-      access_token: await this.jwtService.signAsync(payload),
-      refresh_token: newRefreshToken,
-    };
+    const accessToken = await this.jwtService.signAsync(
+      { sub: user.id, username: user.username },
+      { expiresIn: '1m' },
+    );
+
+    // Set cookies
+    res.cookie('access_token', accessToken, {
+      // httpOnly: true,
+      maxAge: 60000,
+      // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+      // sameSite: 'lax',
+      expires: new Date(Date.now() + 60000),
+    });
+
+    res.cookie('refresh_token', newRefreshToken, {
+      // httpOnly: true,
+      maxAge: 86400000,
+      // secure: process.env.NODE_ENV === 'production' ? true : false, // use secure cookies in production
+      // sameSite: 'lax',
+      expires: new Date(Date.now() + 86400000),
+    });
+
+    return res.json({ message: 'Token refreshed' });
   }
 
   async logOut(username: string) {
@@ -280,5 +299,23 @@ export class AuthService {
     await this.usersService.update(user.id, {
       refreshToken: null,
     });
+  }
+
+  async check(userObj: any) {
+    const user = await this.usersService.findOne(userObj.username);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return user;
+  }
+
+  async protected(userObj: any, path: string) {
+    const user = await this.usersService.findOne(userObj.username);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+
+    return { message: 'You are authorized' };
   }
 }
