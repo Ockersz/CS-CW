@@ -34,10 +34,10 @@ export class User {
   })
   telephone: string;
 
-  @Column('bigint', {
+  @Column('int', {
     nullable: true,
   })
-  role: string;
+  role: number;
 
   @Column('boolean', {
     default: false,
@@ -61,8 +61,20 @@ export class User {
   })
   otp: string | null;
 
+  @Column('varchar', {
+    length: 255,
+    nullable: true,
+  })
+  createdBy: number | null;
+
   @CreateDateColumn()
   created_at: Date;
+
+  @Column('varchar', {
+    length: 255,
+    nullable: true,
+  })
+  updatedBy: number | null;
 
   @UpdateDateColumn()
   updated_at: Date;

@@ -56,6 +56,10 @@ export class AuthService {
     if (!user) {
       throw new UnauthorizedException();
     }
+
+    if (user.status === false) {
+      throw new UnauthorizedException();
+    }
     const decryptedPassword = this.encryptionService.decrypt(pass);
     // const passwordMatches = await bcrypt.compare(pass, user.password);
     const passwordMatches = bcrypt.compareSync(
@@ -308,14 +312,5 @@ export class AuthService {
     }
 
     return user;
-  }
-
-  async protected(userObj: any, path: string) {
-    const user = await this.usersService.findOne(userObj.username);
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-
-    return { message: 'You are authorized' };
   }
 }

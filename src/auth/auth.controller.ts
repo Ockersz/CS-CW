@@ -69,11 +69,4 @@ export class AuthController {
   check(@Req() req: any) {
     return this.authService.check(req?.user);
   }
-
-  @UseGuards(AuthGuard)
-  @HttpCode(HttpStatus.OK)
-  @Post('protected')
-  protected(@Req() req: any, @Body() body: any) {
-    return this.authService.protected(req?.user, body.path);
-  }
 }
