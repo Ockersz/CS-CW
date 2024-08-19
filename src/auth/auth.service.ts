@@ -250,6 +250,10 @@ export class AuthService {
   }
 
   async refreshToken(refreshToken: string, @Res() res: Response) {
+    if (!refreshToken) {
+      throw new UnauthorizedException();
+    }
+
     const payload = await this.jwtService.verifyAsync(refreshToken);
     const user = await this.usersService.findOne(payload.username);
     if (!user) {
