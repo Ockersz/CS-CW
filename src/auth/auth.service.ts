@@ -2,7 +2,6 @@ import { Injectable, Res, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { Response } from 'express';
-import { SignUpDto } from 'src/dto/signUpDto';
 import { EncrpytionService } from 'src/encrpytion/encrpytion.service';
 import { MailService } from 'src/mail/mail.service';
 import { SmsService } from 'src/sms/sms.service';
@@ -17,31 +16,19 @@ export class AuthService {
     private encryptionService: EncrpytionService,
   ) {}
 
-  async signUp(
-    signUpDto: SignUpDto,
-  ): Promise<
-    | { access_token: string; refresh_token: string; mfa: false }
-    | { mfa: boolean }
-  > {
-    const createdUser = await this.usersService.create(signUpDto);
+  async signUp(signUpDto: any): Promise<any> {
+    const decrptedObject = this.encryptionService.decrypt(signUpDto.data);
+
+    const object = JSON.parse(decrptedObject);
+
+    const createdUser = await this.usersService.create(object);
     if (!createdUser) {
       throw new UnauthorizedException();
     }
-    const payload = { sub: createdUser.id, username: createdUser.username };
-    const refreshToken = await this.jwtService.signAsync(
-      { sub: createdUser.id, username: createdUser.username },
-      { expiresIn: '1d' },
-    );
-    await this.usersService.update(createdUser.id, {
-      refreshToken,
-    });
-    return createdUser.mfa
-      ? { mfa: true }
-      : {
-          access_token: await this.jwtService.signAsync(payload),
-          refresh_token: refreshToken,
-          mfa: false,
-        };
+
+    return {
+      message: 'User created',
+    };
   }
 
   async init(@Res() res: Response) {

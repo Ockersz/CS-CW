@@ -9,6 +9,9 @@ import { Form } from './forms/entities/form.entity';
 import { FormsModule } from './forms/forms.module';
 import { MailController } from './mail/mail.controller';
 import { MailModule } from './mail/mail.module';
+import { Prescription } from './prescription/entities/prescription.entity';
+import { PresDetail } from './prescription/entities/presdetail.entity';
+import { PrescriptionModule } from './prescription/prescription.module';
 import { RoleAccess } from './role-access/entities/role-access.entity';
 import { RoleAccessModule } from './role-access/role-access.module';
 import { Role } from './role/entities/role.entity';
@@ -29,7 +32,7 @@ import { UsersModule } from './users/users.module';
       username: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
       database: process.env.DB_NAME,
-      entities: [User, Role, Form, RoleAccess],
+      entities: [User, Role, Form, RoleAccess, Prescription, PresDetail],
       synchronize: true,
     }),
     AuthModule,
@@ -40,6 +43,7 @@ import { UsersModule } from './users/users.module';
     RoleModule,
     FormsModule,
     RoleAccessModule,
+    PrescriptionModule,
   ],
   controllers: [AppController, MailController],
   providers: [AppService],

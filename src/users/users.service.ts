@@ -21,16 +21,26 @@ export class UsersService {
   }
 
   async create(user: SignUpDto): Promise<User> {
-    const userExists = await this.usersRepository.findOne({
-      where: [{ username: user.username }, { email: user.email }],
+    const usernameExists = await this.usersRepository.findOne({
+      where: [{ username: user.username }],
     });
 
-    if (userExists) {
+    if (usernameExists) {
       throw new BadRequestException('User already exists');
     }
+
+    const emailExists = await this.usersRepository.findOne({
+      where: [{ email: user.email }],
+    });
+
+    if (emailExists) {
+      throw new BadRequestException('Email already exists');
+    }
+
     const newUser = this.usersRepository.create({
       ...user,
       password: await bcrypt.hash(user.password, await bcrypt.genSalt()),
+      role: 4,
     });
     return this.usersRepository.save(newUser);
   }
@@ -76,7 +86,7 @@ export class UsersService {
   async getUsers(userObj: any) {
     return this.usersRepository.find({
       select: ['id', 'username', 'email', 'telephone', 'status', 'role'],
-      where: { id: Not(userObj.id) },
+      where: { id: Not(userObj.id), role: Not(3) },
     });
   }
 

@@ -10,7 +10,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { SignUpDto } from 'src/dto/signUpDto';
 import { AuthGuard } from '../auth.guard';
 import { AuthService } from './auth.service';
 @Controller('auth')
@@ -35,7 +34,7 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('register')
-  async signUp(@Body() signUpDto: SignUpDto) {
+  async signUp(@Body() signUpDto: any) {
     return await this.authService.signUp(signUpDto);
   }
 

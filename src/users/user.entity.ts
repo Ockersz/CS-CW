@@ -12,6 +12,16 @@ export class User {
   id: number;
 
   @Column('varchar', {
+    length: 255,
+  })
+  firstName: string;
+
+  @Column('varchar', {
+    length: 255,
+  })
+  lastName: string;
+
+  @Column('varchar', {
     length: 24,
     unique: true,
   })
